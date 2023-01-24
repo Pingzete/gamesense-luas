@@ -1,0 +1,168 @@
+local ui_reference, ui_set, ui_get, ui_new_checkbox, ui_new_multiselect, ui_new_combobox, client_set_event_callback, ui_set_visible = ui.reference, ui.set, ui.get, ui.new_checkbox, ui.new_multiselect, ui.new_combobox, client.set_event_callback, ui.set_visible
+
+refs = {
+
+    edge_yaw = ui_reference("AA", "Anti-aimbot angles", "Edge yaw"),
+    freestanding = {ui_reference("AA", "Anti-aimbot angles", "Freestanding")},
+    quickpeek = {ui_reference("RAGE", "Other", "Quick peek assist")},
+    doubletap = {ui_reference("RAGE", "Other", "Double tap")},
+    onshot = {ui_reference("AA", "Other", "On shot anti-aim")},
+
+}
+
+gui = {
+
+    ragebot = {
+        ideal_tick = ui_new_checkbox("AA", "Anti-aimbot angles", "Ideal tick"),
+        ideal_tick_settings = ui_new_multiselect("AA", "Anti-aimbot angles", "Ideal tick settings", "Doubletap", "Safe head"),
+        safe_head_settings = ui_new_combobox("AA", "Anti-aimbot angles", "Safe head settings", "Freestanding", "Edge yaw"),
+    }
+
+}
+
+helpers = {
+
+    contains = function(tab, val)
+        for index, value in ipairs(tab) do
+            if value == val then return true end
+        end
+
+        return false
+    end,
+
+}
+
+ragebot = {}
+
+ragebot.vars = {
+    it_value_dt = nil,
+    it_value_dt_hk = nil,
+
+    it_value_fs = nil,
+    it_value_fs_hk = nil,
+
+    it_value_ey = nil,
+
+    e_bind = {
+        [0] = 'Always on',
+        'On hotkey',
+        'Toggle',
+        'Off hotkey';
+    };
+}
+
+ragebot.get_back_dt = function()
+
+    if ragebot.vars.it_value_dt ~= nil then
+        ui_set(refs.doubletap[1], ragebot.vars.it_value_dt);
+        ragebot.vars.it_value_dt = nil;
+    end
+
+    if ragebot.vars.it_value_dt_hk ~= nil then
+        ui_set(refs.doubletap[2], ragebot.vars.e_bind[ragebot.vars.it_value_dt_hk[2]])
+        ragebot.vars.it_value_dt_hk = nil;
+    end
+
+end
+
+ragebot.get_back_fs = function()
+
+    if ragebot.vars.it_value_fs ~= nil then
+        ui_set(refs.freestanding[1], ragebot.vars.it_value_fs);
+        ragebot.vars.it_value_fs = nil;
+    end
+
+    if ragebot.vars.it_value_fs_hk ~= nil then
+        ui_set(refs.freestanding[2], ragebot.vars.e_bind[ragebot.vars.it_value_fs_hk[2]])
+        ragebot.vars.it_value_fs_hk = nil;
+    end
+
+end
+
+ragebot.get_back_ey = function()
+
+    if ragebot.vars.it_value_ey ~= nil then
+        ui_set(refs.edge_yaw, ragebot.vars.it_value_ey);
+        ragebot.vars.it_value_ey = nil;
+    end
+
+end
+
+ragebot.ideal_tick = function()
+
+    if ui_get(gui.ragebot.ideal_tick) and ui_get(refs.quickpeek[2]) then
+
+        local settings = ui_get(gui.ragebot.ideal_tick_settings);
+
+        if helpers.contains(settings, "Doubletap") then
+
+            if ragebot.vars.it_value_dt == nil then
+                ragebot.vars.it_value_dt = ui_get(refs.doubletap[1]);
+            end
+
+            if ragebot.vars.it_value_dt_hk == nil then
+                ragebot.vars.it_value_dt_hk = {ui_get(refs.doubletap[2])};
+            end
+
+            ui_set(refs.doubletap[1], true)
+            ui_set(refs.doubletap[2], "Always on")
+
+        else
+            ragebot.get_back_dt();
+        end
+
+        if helpers.contains(settings, "Safe head") then
+
+            if ragebot.vars.it_value_fs == nil then
+                ragebot.vars.it_value_fs = ui_get(refs.freestanding[1]);
+            end
+
+            if ragebot.vars.it_value_fs_hk == nil then
+                ragebot.vars.it_value_fs_hk = {ui_get(refs.freestanding[2])};
+            end
+
+            if ragebot.vars.it_value_ey == nil then
+                ragebot.vars.it_value_ey = ui_get(refs.edge_yaw);
+            end
+
+            if ui_get(gui.ragebot.safe_head_settings) == "Freestanding" then
+                ui_set(refs.freestanding[1], "Default")
+                ui_set(refs.freestanding[2], "Always on")
+            else
+                ui_set(refs.edge_yaw, true)
+            end
+
+        else
+            ragebot.get_back_fs();
+            ragebot.get_back_ey();
+        end
+
+        return;
+    end
+
+    ragebot.get_back_dt();
+    ragebot.get_back_fs();
+    ragebot.get_back_ey();
+end
+
+gui.callbacks = function()
+
+    ui_set_visible(gui.ragebot.ideal_tick_settings, ui_get(gui.ragebot.ideal_tick))
+    ui_set_visible(gui.ragebot.safe_head_settings, ui_get(gui.ragebot.ideal_tick) and helpers.contains(ui_get(gui.ragebot.ideal_tick_settings), "Safe head"))
+
+end
+
+callbacks = {
+
+    paint_ui = function()
+        gui.callbacks()
+    end,
+
+    setup_command = function()
+        ragebot.ideal_tick()
+    end,
+
+}
+
+client_set_event_callback("paint_ui", callbacks.paint_ui)
+client_set_event_callback("setup_command", callbacks.setup_command)
