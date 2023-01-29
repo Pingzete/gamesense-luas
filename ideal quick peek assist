@@ -1,6 +1,11 @@
-local ui_reference, ui_set, ui_get, ui_new_checkbox, ui_new_multiselect, ui_new_combobox, client_set_event_callback, ui_set_visible = ui.reference, ui.set, ui.get, ui.new_checkbox, ui.new_multiselect, ui.new_combobox, client.set_event_callback, ui.set_visible
+local ui_reference, ui_set, ui_get, ui_new_checkbox, ui_new_multiselect, ui_new_combobox, client_set_event_callback, ui_set_visible, ui_set_callback, client_unset_event_callback = ui.reference, ui.set, ui.get, ui.new_checkbox, ui.new_multiselect, ui.new_combobox, client.set_event_callback, ui.set_visible, ui.set_callback, client.unset_event_callback
 
-refs = {
+-- localize your suff as much as u can, not just the api function but its a good start.
+-- its much faster for lua to accsess an localize variable, plus it is only accsessable for the current script.
+-- if its global, any other script sees it in the global environment and can use it.
+-- also you could interfere other scripts with that.
+
+local refs = {
 
     edge_yaw = ui_reference("AA", "Anti-aimbot angles", "Edge yaw"),
     freestanding = {ui_reference("AA", "Anti-aimbot angles", "Freestanding")},
@@ -10,7 +15,7 @@ refs = {
 
 }
 
-gui = {
+local gui = {
 
     ragebot = {
         ideal_tick = ui_new_checkbox("AA", "Anti-aimbot angles", "Ideal tick"),
@@ -20,7 +25,7 @@ gui = {
 
 }
 
-helpers = {
+local helpers = {
 
     contains = function(tab, val)
         for index, value in ipairs(tab) do
@@ -32,9 +37,12 @@ helpers = {
 
 }
 
-ragebot = {}
+local ragebot = {}
 
 ragebot.vars = {
+-- defining nils in an table is pointless cuz its still a nil, just like u didnt write those.
+-- i got to admit i do this sometimes too, probable as an visual info for me in the code.
+--[[
     it_value_dt = nil,
     it_value_dt_hk = nil,
 
@@ -42,7 +50,7 @@ ragebot.vars = {
     it_value_fs_hk = nil,
 
     it_value_ey = nil,
-
+]]
     e_bind = {
         [0] = 'Always on',
         'On hotkey',
@@ -52,13 +60,15 @@ ragebot.vars = {
 }
 
 ragebot.get_back_dt = function()
-
-    if ragebot.vars.it_value_dt ~= nil then
+	-- can be made shorter
+    -- if ragebot.vars.it_value_dt ~= nil then
+	if ragebot.vars.it_value_dt then -- i think of it in my head as "if ragebot.vars.it_value_dt exists then do"
         ui_set(refs.doubletap[1], ragebot.vars.it_value_dt);
         ragebot.vars.it_value_dt = nil;
     end
 
-    if ragebot.vars.it_value_dt_hk ~= nil then
+    -- if ragebot.vars.it_value_dt_hk ~= nil then
+	if ragebot.vars.it_value_dt_hk then
         ui_set(refs.doubletap[2], ragebot.vars.e_bind[ragebot.vars.it_value_dt_hk[2]])
         ragebot.vars.it_value_dt_hk = nil;
     end
@@ -67,12 +77,14 @@ end
 
 ragebot.get_back_fs = function()
 
-    if ragebot.vars.it_value_fs ~= nil then
+    -- if ragebot.vars.it_value_fs ~= nil then
+	if ragebot.vars.it_value_fs then
         ui_set(refs.freestanding[1], ragebot.vars.it_value_fs);
         ragebot.vars.it_value_fs = nil;
     end
 
-    if ragebot.vars.it_value_fs_hk ~= nil then
+    -- if ragebot.vars.it_value_fs_hk ~= nil then
+	if ragebot.vars.it_value_fs_hk then
         ui_set(refs.freestanding[2], ragebot.vars.e_bind[ragebot.vars.it_value_fs_hk[2]])
         ragebot.vars.it_value_fs_hk = nil;
     end
@@ -81,7 +93,8 @@ end
 
 ragebot.get_back_ey = function()
 
-    if ragebot.vars.it_value_ey ~= nil then
+    -- if ragebot.vars.it_value_ey ~= nil then
+	if ragebot.vars.it_value_ey then
         ui_set(refs.edge_yaw, ragebot.vars.it_value_ey);
         ragebot.vars.it_value_ey = nil;
     end
@@ -95,14 +108,23 @@ ragebot.ideal_tick = function()
         local settings = ui_get(gui.ragebot.ideal_tick_settings);
 
         if helpers.contains(settings, "Doubletap") then
-
-            if ragebot.vars.it_value_dt == nil then
+			
+			-- there is also an other way to do that. lets do it inline
+            --[[if ragebot.vars.it_value_dt == nil then
                 ragebot.vars.it_value_dt = ui_get(refs.doubletap[1]);
-            end
+            end]]
 
-            if ragebot.vars.it_value_dt_hk == nil then
+			-- normally i do this in one line but its easier to explain in multiple lines
+			ragebot.vars.it_value_dt = (
+				not ragebot.vars.it_value_dt and	-- if ragebot.vars.it_value_dt does not exist (same as nil) then
+				ui_get(refs.doubletap[1]) or		-- ragebot.vars.it_value_dt is ui_get(refs.doubletap[1]) if its not that case then
+				ragebot.vars.it_value_dt            -- ragebot.vars.it_value_dt is ragebot.vars.it_value_dt, just like it is right now.
+			);
+
+            --[[if ragebot.vars.it_value_dt_hk == nil then
                 ragebot.vars.it_value_dt_hk = {ui_get(refs.doubletap[2])};
-            end
+            end]]
+			ragebot.vars.it_value_dt_hk = not ragebot.vars.it_value_dt_hk and {ui_get(refs.doubletap[2])} or ragebot.vars.it_value_dt_hk;
 
             ui_set(refs.doubletap[1], true)
             ui_set(refs.doubletap[2], "Always on")
@@ -113,7 +135,7 @@ ragebot.ideal_tick = function()
 
         if helpers.contains(settings, "Safe head") then
 
-            if ragebot.vars.it_value_fs == nil then
+            --[[if ragebot.vars.it_value_fs == nil then
                 ragebot.vars.it_value_fs = ui_get(refs.freestanding[1]);
             end
 
@@ -123,7 +145,11 @@ ragebot.ideal_tick = function()
 
             if ragebot.vars.it_value_ey == nil then
                 ragebot.vars.it_value_ey = ui_get(refs.edge_yaw);
-            end
+            end]]
+			
+			ragebot.vars.it_value_fs = not ragebot.vars.it_value_fs and ui_get(refs.freestanding[1]) or ragebot.vars.it_value_fs;
+			ragebot.vars.it_value_fs_hk = not ragebot.vars.it_value_fs_hk and ui_get(refs.freestanding[1]) or ragebot.vars.it_value_fs_hk;
+			ragebot.vars.it_value_ey = not ragebot.vars.it_value_ey and ui_get(refs.freestanding[1]) or ragebot.vars.it_value_ey;
 
             if ui_get(gui.ragebot.safe_head_settings) == "Freestanding" then
                 ui_set(refs.freestanding[1], "Default")
@@ -152,7 +178,7 @@ gui.callbacks = function()
 
 end
 
-callbacks = {
+local callbacks = {
 
     paint_ui = function()
         gui.callbacks()
@@ -164,5 +190,18 @@ callbacks = {
 
 }
 
-client_set_event_callback("paint_ui", callbacks.paint_ui)
-client_set_event_callback("setup_command", callbacks.setup_command)
+-- we could also set or unset the event callbacks, depending on if gui.ragebot.ideal_tick is enabled
+-- this will call an fuction if the given ui reference changed its value
+ui_set_callback(gui.ragebot.ideal_tick, function()
+	local enabled = ui_get(gui.ragebot.ideal_tick)
+	
+	-- so... it is set_event_callback or unset_event_callback, if true or false
+	local handle_event_callback = enabled and client_set_event_callback or client_unset_event_callback
+
+	handle_event_callback("paint_ui", callbacks.paint_ui)
+	handle_event_callback("setup_command", callbacks.setup_command)
+end)
+
+-- we won't need this anymore
+-- client_set_event_callback("paint_ui", callbacks.paint_ui)
+-- client_set_event_callback("setup_command", callbacks.setup_command)
